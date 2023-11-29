@@ -1,25 +1,22 @@
 // bird-sort.jsx
+import PropTypes from 'prop-types';
 import { useState } from 'react';
-
 import Menu from '@mui/material/Menu';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import { listClasses } from '@mui/material/List';
 import Typography from '@mui/material/Typography';
-
 import Iconify from 'src/components/iconify';
 
-// ----------------------------------------------------------------------
-
 export const SORT_OPTIONS = [
-  { value: 'band_number', label: 'Band Number' },
-  { value: 'cage_number', label: 'Cage Number' },
-  { value: 'newest_dobanding', label: 'Date of Banding' },
-  { value: 'newest_dobirth', label: 'Date of Birth' },
-  { value: 'status', label: 'Status' },
+  { value: 'band_number', label: 'Band Number', direction: 'asc' },
+  { value: 'cage_number', label: 'Cage Number', direction: 'asc' },
+  { value: 'date_of_banding', label: 'Date of Banding', direction: 'asc' },
+  { value: 'date_of_birth', label: 'Date of Birth', direction: 'asc' },
+  { value: 'status', label: 'Status', direction: 'asc' },
 ];
 
-export default function ShopProductSort() {
+const BirdSort = ({ onSortChange }) => {
   const [open, setOpen] = useState(null);
 
   const handleOpen = (event) => {
@@ -28,6 +25,11 @@ export default function ShopProductSort() {
 
   const handleClose = () => {
     setOpen(null);
+  };
+
+  const handleSortChange = (option) => {
+    onSortChange(option);
+    handleClose();
   };
 
   return (
@@ -61,11 +63,21 @@ export default function ShopProductSort() {
         }}
       >
         {SORT_OPTIONS.map((option) => (
-          <MenuItem key={option.value} selected={option.value === 'newest'} onClick={handleClose}>
+          <MenuItem
+            key={option.value}
+            selected={false} // Ensure that the selected state is not always 'newest'
+            onClick={() => handleSortChange(option)}
+          >
             {option.label}
           </MenuItem>
         ))}
       </Menu>
     </>
   );
-}
+};
+
+BirdSort.propTypes = {
+  onSortChange: PropTypes.func.isRequired,
+};
+
+export default BirdSort;
