@@ -252,7 +252,7 @@ const BirdsV2View = () => {
       <Grid container spacing={3}>
         {birds.map((bird) => (
           <Grid item key={bird.id} xs={12} sm={6} md={4} lg={3}>
-            <BirdCard bird={bird} />
+            <BirdCard bird={bird} setBirds={setBirds} toast={toast} setAlert={setAlert}/>
           </Grid>
         ))}
       </Grid>
