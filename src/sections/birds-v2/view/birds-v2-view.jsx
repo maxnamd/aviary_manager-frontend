@@ -15,6 +15,8 @@ import TextField from '@mui/material/TextField';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import MenuItem from '@mui/material/MenuItem';
+import { Tabs, Tab, Box } from '@mui/material';
+
 import { toast, ToastContainer } from 'react-toastify';
 import { FilePond, registerPlugin } from 'react-filepond';
 import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
@@ -23,6 +25,7 @@ import FilePondPluginImagePreview from 'filepond-plugin-image-preview';
 import BirdCard from '../bird-card';
 import BirdFilters from '../bird-filter';
 import BirdSort from '../bird-sort';
+import TabPanel from '../bird-tab-panel';
 import 'react-toastify/dist/ReactToastify.css';
 import 'filepond/dist/filepond.min.css';
 import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
@@ -37,6 +40,69 @@ const BirdsV2View = () => {
     status: '',
   });
   const STATUS_OPTIONS = ['Available', 'Deceased', 'Sold', 'Donated'];
+  const [tabValue, setTabValue] = React.useState(0);
+  const [speciesOptions, setSpeciesOptions] = useState([]);
+  const [showFemaleBirds, setShowFemaleBirds] = useState([]);
+  const [showMaleBirds, setShowMaleBirds] = useState([]);
+
+  useEffect(() => {
+    const fetchSpecies = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/v1/species', {
+          headers: {
+            Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+          },
+        });
+        setSpeciesOptions(response.data.data);
+      } catch (error) {
+        console.error('Error fetching species:', error);
+        // Handle the error appropriately, e.g., show an error message to the user
+      }
+    };
+
+    fetchSpecies();
+  }, []);
+  const handleChangeTab = (event, newTabValue) => {
+    setTabValue(newTabValue);
+  };
+
+  useEffect(() => {
+    const fetchFemaleBirds = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/v1/birds?sex=F', {
+          headers: {
+            Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+          },
+        });
+        const femaleBirdsData = response.data.data;
+        setShowFemaleBirds(femaleBirdsData);
+      } catch (error) {
+        console.error('Error fetching female birds:', error);
+        // Handle the error appropriately, e.g., show an error message to the user
+      }
+    };
+
+    fetchFemaleBirds();
+  }, []);
+
+  useEffect(() => {
+    const fetchMaleBirds = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/v1/birds?sex=M', {
+          headers: {
+            Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+          },
+        });
+        const maleBirdsData = response.data.data;
+        setShowMaleBirds(maleBirdsData);
+      } catch (error) {
+        console.error('Error fetching female birds:', error);
+        // Handle the error appropriately, e.g., show an error message to the user
+      }
+    };
+
+    fetchMaleBirds();
+  }, []);
 
   // State for Add Bird Modal
   const [openAddBirdModal, setOpenAddBirdModal] = useState(false);
@@ -48,6 +114,9 @@ const BirdsV2View = () => {
     date_of_birth: getFormattedDateTime(),
     notes: '',
     status: '',
+    species_id: '',
+    origin_mother_band_number: '',
+    origin_father_band_number: '',
   });
 
   // State for handling alerts
@@ -170,11 +239,16 @@ const BirdsV2View = () => {
       // Create FormData object
       const formData = new FormData();
 
+      console.log('Formdata: ', formData);
       // Append newBirdData fields to FormData
       Object.entries(newBirdData).forEach(([key, value]) => {
-        formData.append(key, value);
+        // Convert species_id to integer before appending
+        if (key === 'species_id' && typeof value === 'string') {
+          formData.append(key, parseInt(value, 10));
+        } else {
+          formData.append(key, value);
+        }
       });
-
       // Append files to FormData
       galleryFiles.forEach((file, index) => {
         formData.append(`gallery[${index}]`, file);
@@ -204,7 +278,13 @@ const BirdsV2View = () => {
       });
 
       // Close the modal and refresh the data
-      setBirds((prevBirds) => [...prevBirds]);
+      // setBirds((prevBirds) => [...prevBirds]);
+      const birdsResponse = await axios.get(`http://localhost:8000/api/v1/birds?page=${currentPage}&per_page=20`, {
+        headers: {
+          Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+        },
+      });
+      setBirds(birdsResponse.data.data);
       setNewBirdData({
         band_number: '',
         sex: '',
@@ -213,6 +293,9 @@ const BirdsV2View = () => {
         date_of_birth: getFormattedDateTime(),
         notes: '',
         status: '',
+        species_id: '',
+        origin_mother_band_number: '',
+        origin_father_band_number: '',
       });
       setGalleryFiles([]);
       handleCloseAddBirdModal();
@@ -252,7 +335,7 @@ const BirdsV2View = () => {
       <Grid container spacing={3}>
         {birds.map((bird) => (
           <Grid item key={bird.id} xs={12} sm={6} md={4} lg={3}>
-            <BirdCard bird={bird} setBirds={setBirds} toast={toast} setAlert={setAlert}/>
+            <BirdCard bird={bird} setBirds={setBirds} toast={toast} setAlert={setAlert} showFemaleBirds={showFemaleBirds} showMaleBirds={showMaleBirds} TabPanel={TabPanel} speciesOptions={speciesOptions}/>
           </Grid>
         ))}
       </Grid>
@@ -299,86 +382,171 @@ const BirdsV2View = () => {
         <DialogTitle>Add Bird</DialogTitle>
         <DialogContent>
           <form>
-            <TextField
-              margin="normal"
-              label="Band Number"
-              name="band_number"
-              value={newBirdData.band_number}
-              onChange={handleNewBirdDataChange}
-              fullWidth
-            />
-            <TextField
-              margin="normal"
-              label="Sex"
-              name="sex"
-              value={newBirdData.sex}
-              onChange={handleNewBirdDataChange}
-              fullWidth
-            />
-            <TextField
-              margin="normal"
-              label="Cage Number"
-              name="cage_number"
-              value={newBirdData.cage_number}
-              onChange={handleNewBirdDataChange}
-              fullWidth
-            />
-            <TextField
-              margin="normal"
-              label="Date of Banding"
-              name="date_of_banding"
-              type="datetime-local"
-              value={newBirdData.date_of_banding}
-              onChange={handleNewBirdDataChange}
-              fullWidth
-            />
-            <TextField
-              margin="normal"
-              label="Date of Birth"
-              name="date_of_birth"
-              type="datetime-local"
-              value={newBirdData.date_of_birth}
-              onChange={handleNewBirdDataChange}
-              fullWidth
-            />
-            <TextField
-              margin="normal"
-              label="Notes"
-              name="notes"
-              value={newBirdData.notes}
-              onChange={handleNewBirdDataChange}
-              fullWidth
-            />
-            <TextField
-              margin="normal"
-              label="Status"
-              name="status"
-              value={newBirdData.status}
-              onChange={handleNewBirdDataChange}
-              fullWidth
+            <Box sx={{ width: '100%' }}>
+              <Tabs value={tabValue} onChange={handleChangeTab}>
+                <Tab label="Main Details" />
 
-              select 
-            >
-              {STATUS_OPTIONS.map((status) => (
-                <MenuItem key={status} value={status}>
-                  {status}
-                </MenuItem>
-              ))}
-            </TextField>
+                <Tab label="Origin" />
+                <Tab label="Genetic" />
+                <Tab label="Gallery" />
+                <Tab label="Notes" />
+              </Tabs>
 
-            <FilePond
-              files={galleryFiles}
-              allowMultiple
-              maxFiles={5}
-              onupdatefiles={(fileItems) => {
-                setGalleryFiles(fileItems.map((fileItem) => fileItem.file));
-              }}
-              labelIdle="Drop files here or click to browse"
-              allowImagePreview
-              imagePreviewMinHeight={50}
-              imagePreviewMaxHeight={50}
-              imagePreviewHeight={50}
-            />
+              <TabPanel value={tabValue} index={0}>
+                {/* Your existing bird details content */}
+
+                <TextField
+                  margin="normal"
+                  label="Band Number"
+                  name="band_number"
+                  value={newBirdData.band_number}
+                  onChange={handleNewBirdDataChange}
+                  fullWidth
+                />
+
+                <TextField
+                  margin="normal"
+                  label="Sex"
+                  name="sex"
+                  value={newBirdData.sex}
+                  onChange={handleNewBirdDataChange}
+                  fullWidth
+                />
+
+                <TextField
+                  margin="normal"
+                  label="Species"
+                  name="species_id"
+                  value={newBirdData.species_id}
+                  onChange={handleNewBirdDataChange}
+                  fullWidth
+                  select
+                >
+                  {speciesOptions.map((species) => (
+                    <MenuItem key={species.id} value={species.id}>
+                      {species.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  margin="normal"
+                  label="Cage Number"
+                  name="cage_number"
+                  value={newBirdData.cage_number}
+                  onChange={handleNewBirdDataChange}
+                  fullWidth
+                />
+                <TextField
+                  margin="normal"
+                  label="Date of Banding"
+                  name="date_of_banding"
+                  type="datetime-local"
+                  value={newBirdData.date_of_banding}
+                  onChange={handleNewBirdDataChange}
+                  fullWidth
+                />
+                <TextField
+                  margin="normal"
+                  label="Date of Birth"
+                  name="date_of_birth"
+                  type="datetime-local"
+                  value={newBirdData.date_of_birth}
+                  onChange={handleNewBirdDataChange}
+                  fullWidth
+                />
+
+                <TextField
+                  margin="normal"
+                  label="Status"
+                  name="status"
+                  value={newBirdData.status}
+                  onChange={handleNewBirdDataChange}
+                  fullWidth
+                  select
+                >
+                  {STATUS_OPTIONS.map((status) => (
+                    <MenuItem key={status} value={status}>
+                      {status}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </TabPanel>
+
+              <TabPanel value={tabValue} index={1}>
+                {/* Origin Field Tab */}
+                <TextField
+                  margin="normal"
+                  label="Mother (band number)"
+                  name="origin_mother_band_number"
+                  value={newBirdData.origin_mother_band_number}
+                  onChange={handleNewBirdDataChange}
+                  fullWidth
+                  select
+                >
+                  {showFemaleBirds.map((motherBird) => (
+                    <MenuItem key={motherBird.id} value={motherBird.band_number}>
+                      {motherBird.band_number}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  margin="normal"
+                  label="Father (band number)"
+                  name="origin_father_band_number"
+                  value={newBirdData.origin_father_band_number}
+                  onChange={handleNewBirdDataChange}
+                  fullWidth
+                  select
+                >
+                  {showMaleBirds.map((fatherBird) => (
+                    <MenuItem key={fatherBird.id} value={fatherBird.band_number}>
+                      {fatherBird.band_number}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </TabPanel>
+
+              <TabPanel value={tabValue} index={2}>
+                {/* Genetic Field Tab */}
+                <TextField margin="normal" label="Genotype" name="genotype" fullWidth />
+
+                <TextField margin="normal" label="Phenotype" name="phenotype" fullWidth />
+
+                <TextField margin="normal" label="Mutation" name="mutaion" fullWidth />
+              </TabPanel>
+
+              <TabPanel value={tabValue} index={3}>
+                {/* Gallery Field Tab */}
+                {/* Your gallery content */}
+                <FilePond
+                  files={galleryFiles}
+                  allowMultiple
+                  maxFiles={5}
+                  onupdatefiles={(fileItems) => {
+                    setGalleryFiles(fileItems.map((fileItem) => fileItem.file));
+                  }}
+                  labelIdle="Drop files here or click to browse"
+                  allowImagePreview
+                  imagePreviewMinHeight={50}
+                  imagePreviewMaxHeight={50}
+                  imagePreviewHeight={50}
+                />
+              </TabPanel>
+
+              <TabPanel value={tabValue} index={4}>
+                {/* Notes Field Tab */}
+                <TextField
+                  margin="normal"
+                  label="Notes"
+                  name="notes"
+                  value={newBirdData.notes}
+                  onChange={handleNewBirdDataChange}
+                  fullWidth
+                />
+              </TabPanel>
+            </Box>
           </form>
         </DialogContent>
         <DialogActions>

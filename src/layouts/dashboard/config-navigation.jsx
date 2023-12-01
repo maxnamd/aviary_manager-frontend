@@ -13,6 +13,21 @@ const navConfig = [
     icon: icon('ic_analytics'),
   },
   {
+    title: 'Birds Manager',
+    path: '/birds-v2',
+    icon: icon('ic_birds-2'),
+  },
+  {
+    title: 'Species',
+    path: '/species',
+    icon: icon('ic_birds'),
+  },
+  {
+    title: 'birds - Alpha',
+    path: '/birds',
+    icon: icon('ic_birds-colored'),
+  },
+  {
     title: 'user',
     path: '/user',
     icon: icon('ic_user'),
@@ -21,16 +36,6 @@ const navConfig = [
     title: 'product',
     path: '/products',
     icon: icon('ic_cart'),
-  },
-  {
-    title: 'birds',
-    path: '/birds',
-    icon: icon('ic_blog'),
-  },
-  {
-    title: 'birds-v2',
-    path: '/birds-v2',
-    icon: icon('ic_blog'),
   },
   {
     title: 'blog',

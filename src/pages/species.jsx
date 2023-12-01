@@ -1,17 +1,17 @@
 import { Helmet } from 'react-helmet-async';
 
-import { BirdsV2View } from 'src/sections/birds-v2/view';
+import { SpeciesView } from 'src/sections/species/view';
 
 // ----------------------------------------------------------------------
 
-export default function BirdsV2Page() {
+export default function SpeciesPage() {
   return (
     <>
       <Helmet>
-        <title> Birds Manager | Minimal UI </title>
+        <title> Species | Minimal UI </title>
       </Helmet>
 
-      <BirdsV2View />
+      <SpeciesView />
     </>
   );
 }
