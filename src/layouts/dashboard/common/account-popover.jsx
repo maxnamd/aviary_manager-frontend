@@ -10,6 +10,8 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 
 import { account } from 'src/_mock/account';
+import axios from 'axios';
+import { useStateContext } from 'src/contexts/ContextProvider';
 
 // ----------------------------------------------------------------------
 
@@ -31,14 +33,51 @@ const MENU_OPTIONS = [
 // ----------------------------------------------------------------------
 
 export default function AccountPopover() {
+  const myToken = localStorage.getItem('ACCESS_TOKEN');
   const [open, setOpen] = useState(null);
-
+  const { setToken } = useStateContext();
   const handleOpen = (event) => {
     setOpen(event.currentTarget);
   };
 
   const handleClose = () => {
     setOpen(null);
+  };
+
+  // Function to handle logout
+  const handleLogout = async () => {
+    try {
+      // Send a POST request to the logout endpoint
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/v1/logout`,
+        null, // Pass null as the second argument if you don't need to send a request body
+        {
+          headers: {
+            Authorization: `Bearer ${myToken}`,
+            Accept: '*/*',
+          },
+        }
+      );
+
+      // Log the entire response object to see the status and data
+      console.log(response);
+
+      // Check if there's a response status and log it
+      if (response.status) {
+        setToken(null);
+        console.log(`Logout successful. Status: ${response.status}`);
+      }
+
+      // Perform any additional logout logic, e.g., redirect to login page
+    } catch (error) {
+      // Log the entire error object to see details
+      console.error('Logout failed', error);
+
+      // Check if there's a response status in the error object and log it
+      if (error.response && error.response.status) {
+        console.error(`Error status: ${error.response.status}`);
+      }
+    }
   };
 
   return (
@@ -105,7 +144,10 @@ export default function AccountPopover() {
         <MenuItem
           disableRipple
           disableTouchRipple
-          onClick={handleClose}
+          onClick={() => {
+            handleClose();
+            handleLogout();
+          }}
           sx={{ typography: 'body2', color: 'error.main', py: 1.5 }}
         >
           Logout

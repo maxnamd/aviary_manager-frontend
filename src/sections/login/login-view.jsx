@@ -19,19 +19,35 @@ import { bgGradient } from 'src/theme/css';
 
 import Logo from 'src/components/logo';
 import Iconify from 'src/components/iconify';
-import axios from "axios";
-import { useStateContext } from "../../contexts/ContextProvider";
+import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import { useStateContext } from '../../contexts/ContextProvider';
+import 'react-toastify/dist/ReactToastify.css';
 // ----------------------------------------------------------------------
 
 export default function LoginView() {
   const theme = useTheme();
   // const router = useRouter();
-  
+
   // State for email and password
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { setToken } = useStateContext()
+  const [failedAttempts, setFailedAttempts] = useState(0); // Track failed login attempts
+  const [isButtonDisabled, setButtonDisabled] = useState(false); // Disable login button
+  const { setToken } = useStateContext();
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      handleClick();
+    }
+  };
+
+  const showToast = (message, type) => {
+    // toast[type](message);
+    toast[type](message, {
+      onClose: () => console.log("Toast closed")
+    });
+  };
   // Update email state when the value changes
   const handleEmailChange = (event) => {
     setEmail(event.target.value);
@@ -43,60 +59,69 @@ export default function LoginView() {
   };
 
   const handleClick = async () => {
-    // Now you can use 'email' and 'password' in your logic
     console.log('Email:', email);
     console.log('Password:', password);
-    // router.push('/dashboard');
+
     const payload = {
       email: `${email}`,
       password: `${password}`,
     };
+
     console.log('Payload:', payload);
+
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/v1/login",
+        `${import.meta.env.VITE_API_BASE_URL}/api/v1/login`,
         new URLSearchParams(payload).toString(),
         {
           headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
+            'Content-Type': 'application/x-www-form-urlencoded',
           },
         }
       );
 
-      // Handle success
-      console.log("Login success:", response.data);
-      // setUser(data.user)
-      setToken(response.data.access_token)
-      console.log("Access token:", response.data.access_token)
-      // Reset any previous error
-      // setError(null);
+      showToast('Login success!', 'success');
 
-      // Update state or perform other actions as needed
+      // Show toast 5 seconds before setting the token
+      setTimeout(() => {
+        setToken(response.data.access_token);
+        console.log('Access token:', response.data.access_token);
+      }, 2000);
     } catch (error) {
-      // Handle error
-      console.error("Login error:", error);
+      setFailedAttempts((prevAttempts) => prevAttempts + 1);
 
-      // Display the error message from the API, if available
-      // if (error.response && error.response.data && error.response.data.message) {
-      //   setError(error.response.data.message);
-      // } else {
-      //   setError("An unexpected error occurred. Please try again.");
-      // }
+      if (failedAttempts >= 2) {
+        // If 3 or more failed attempts, disable the button for 30 seconds
+        setButtonDisabled(true);
+        setTimeout(() => {
+          setButtonDisabled(false);
+          setFailedAttempts(0); // Reset failed attempts after cooldown
+        }, 30000);
+      }
 
-      // Update state or perform other error handling actions
+      if (error.response && error.response.data && error.response.data.message) {
+        showToast(error.response.data.message, 'error');
+      } else {
+        showToast('An unexpected error occurred. Please try again later', 'error');
+      }
     }
   };
 
   const renderForm = (
     <>
+      <ToastContainer
+        position="bottom-center"
+        autoClose={1000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnHover
+        theme="light"
+      />
       <Stack spacing={3}>
         {/* Use the value and onChange props to control the TextField components */}
-        <TextField
-          name="email"
-          label="Email address"
-          value={email}
-          onChange={handleEmailChange}
-        />
+        <TextField name="email" label="Email address" value={email} onChange={handleEmailChange} onKeyPress={handleKeyPress}/>
 
         <TextField
           name="password"
@@ -113,6 +138,7 @@ export default function LoginView() {
           }}
           value={password}
           onChange={handlePasswordChange}
+          onKeyPress={handleKeyPress}
         />
       </Stack>
 
@@ -129,8 +155,10 @@ export default function LoginView() {
         variant="contained"
         color="inherit"
         onClick={handleClick}
+        onKeyPress={handleKeyPress}
+        disabled={isButtonDisabled}
       >
-        Login
+        {isButtonDisabled ? 'Please wait...' : 'Login'}
       </LoadingButton>
     </>
   );

@@ -30,7 +30,9 @@ import 'react-toastify/dist/ReactToastify.css';
 import 'filepond/dist/filepond.min.css';
 import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
 
+const myToken = localStorage.getItem('ACCESS_TOKEN');
 const BirdsV2View = () => {
+  console.log(myToken);
   const [birds, setBirds] = useState([]);
   const [isGrid, setIsGrid] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,19 +46,61 @@ const BirdsV2View = () => {
   const [speciesOptions, setSpeciesOptions] = useState([]);
   const [showFemaleBirds, setShowFemaleBirds] = useState([]);
   const [showMaleBirds, setShowMaleBirds] = useState([]);
+  const [openBirdModal, setOpenBirdModal] = useState(false);
+  const [editingBird, setEditingBird] = useState(null); // null for adding a new bird
+  // Function to handle opening and closing of the Add/Edit Bird Modal
+  const handleOpenBirdModal = (bird = null) => {
+    if (bird !== null) {
+      // If editing an existing bird, set the newBirdData state with the bird's data
+      setNewBirdData({
+        band_number: bird.band_number,
+        sex: bird.sex,
+        cage_number: bird.cage_number,
+        date_of_banding: bird.date_of_banding,
+        date_of_birth: bird.date_of_birth,
+        notes: bird.notes,
+        status: bird.status,
+        species_id: bird.species_id,
+        origin_mother_band_number: bird.origin_mother_band_number,
+        origin_father_band_number: bird.origin_father_band_number,
+      });
+    } else {
+      // If adding a new bird, reset the newBirdData state to its default values
+      setNewBirdData({
+        band_number: '',
+        sex: '',
+        cage_number: '',
+        date_of_banding: getFormattedDateTime(),
+        date_of_birth: getFormattedDateTime(),
+        notes: '',
+        status: '',
+        species_id: '',
+        origin_mother_band_number: '',
+        origin_father_band_number: '',
+      });
+    }
+
+    setEditingBird(bird);
+    setOpenBirdModal(true);
+  };
+
+  const handleCloseBirdModal = () => {
+    setEditingBird(null);
+    setOpenBirdModal(false);
+  };
 
   useEffect(() => {
     const fetchSpecies = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/v1/species', {
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/v1/species`, {
           headers: {
-            Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+            Authorization: `Bearer ${myToken}`,
+            Accept: '*/*',
           },
         });
         setSpeciesOptions(response.data.data);
       } catch (error) {
-        console.error('Error fetching species:', error);
-        // Handle the error appropriately, e.g., show an error message to the user
+        console.log('Error getting species:', error.response.data.message);
       }
     };
 
@@ -69,11 +113,14 @@ const BirdsV2View = () => {
   useEffect(() => {
     const fetchFemaleBirds = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/v1/birds?sex=F', {
-          headers: {
-            Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
-          },
-        });
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL}/api/v1/birds?sex=F`,
+          {
+            headers: {
+              Authorization: `Bearer ${myToken}`,
+            },
+          }
+        );
         const femaleBirdsData = response.data.data;
         setShowFemaleBirds(femaleBirdsData);
       } catch (error) {
@@ -88,11 +135,14 @@ const BirdsV2View = () => {
   useEffect(() => {
     const fetchMaleBirds = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/v1/birds?sex=M', {
-          headers: {
-            Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
-          },
-        });
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL}/api/v1/birds?sex=M`,
+          {
+            headers: {
+              Authorization: `Bearer ${myToken}`,
+            },
+          }
+        );
         const maleBirdsData = response.data.data;
         setShowMaleBirds(maleBirdsData);
       } catch (error) {
@@ -104,8 +154,6 @@ const BirdsV2View = () => {
     fetchMaleBirds();
   }, []);
 
-  // State for Add Bird Modal
-  const [openAddBirdModal, setOpenAddBirdModal] = useState(false);
   const [newBirdData, setNewBirdData] = useState({
     band_number: '',
     sex: '',
@@ -132,10 +180,12 @@ const BirdsV2View = () => {
       const statusParam = filters.status ? `&status=${filters.status}` : '';
 
       const response = await axios.get(
-        `http://localhost:8000/api/v1/birds?page=${currentPage}&per_page=20${genderParam}${statusParam}`,
+        `${
+          import.meta.env.VITE_API_BASE_URL
+        }/api/v1/birds?page=${currentPage}&per_page=10${genderParam}${statusParam}`,
         {
           headers: {
-            Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+            Authorization: `Bearer ${myToken}`,
           },
         }
       );
@@ -184,10 +234,12 @@ const BirdsV2View = () => {
       const directionParam = sortOption.direction ? `&direction=${sortOption.direction}` : '';
 
       const response = await axios.get(
-        `http://localhost:8000/api/v1/birds?page=${currentPage}&per_page=20${genderParam}${statusParam}${sortParam}${directionParam}`,
+        `${
+          import.meta.env.VITE_API_BASE_URL
+        }/api/v1/birds?page=${currentPage}&per_page=20${genderParam}${statusParam}${sortParam}${directionParam}`,
         {
           headers: {
-            Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+            Authorization: `Bearer ${myToken}`,
           },
         }
       );
@@ -208,21 +260,6 @@ const BirdsV2View = () => {
     setOpenFilter(false);
   };
 
-  // Function to handle opening and closing of the Add Bird Modal
-  const handleOpenAddBirdModal = () => {
-    setOpenAddBirdModal(true);
-  };
-
-  const handleCloseAddBirdModal = () => {
-    setOpenAddBirdModal(false);
-  };
-
-  // Function to handle input changes in the Add Bird Modal
-  const handleNewBirdDataChange = (e) => {
-    const { name, value } = e.target;
-    setNewBirdData((prevData) => ({ ...prevData, [name]: value }));
-  };
-
   function getFormattedDateTime() {
     const now = new Date();
     const year = now.getFullYear();
@@ -233,101 +270,6 @@ const BirdsV2View = () => {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
-  // Function to handle adding a new bird
-  const handleAddBird = async () => {
-    try {
-      // Create FormData object
-      const formData = new FormData();
-
-      console.log('Formdata: ', formData);
-      // Append newBirdData fields to FormData
-      Object.entries(newBirdData).forEach(([key, value]) => {
-        // Convert species_id to integer before appending
-        if (key === 'species_id' && typeof value === 'string') {
-          formData.append(key, parseInt(value, 10));
-        } else {
-          formData.append(key, value);
-        }
-      });
-      // Append files to FormData
-      galleryFiles.forEach((file, index) => {
-        formData.append(`gallery[${index}]`, file);
-      });
-
-      // Format date fields
-      const formattedDateOfBanding = new Date(newBirdData.date_of_banding)
-        .toISOString()
-        .slice(0, 19)
-        .replace('T', ' ');
-
-      const formattedDateOfBirth = new Date(newBirdData.date_of_birth)
-        .toISOString()
-        .slice(0, 19)
-        .replace('T', ' ');
-
-      // Append formatted date fields to FormData
-      formData.append('date_of_banding', formattedDateOfBanding);
-      formData.append('date_of_birth', formattedDateOfBirth);
-
-      // Make the POST request with FormData
-      await axios.post('http://localhost:8000/api/v1/birds', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
-        },
-      });
-
-      // Close the modal and refresh the data
-      // setBirds((prevBirds) => [...prevBirds]);
-      const birdsResponse = await axios.get(`http://localhost:8000/api/v1/birds?page=${currentPage}&per_page=20`, {
-        headers: {
-          Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
-        },
-      });
-      setBirds(birdsResponse.data.data);
-      setNewBirdData({
-        band_number: '',
-        sex: '',
-        cage_number: '',
-        date_of_banding: getFormattedDateTime(),
-        date_of_birth: getFormattedDateTime(),
-        notes: '',
-        status: '',
-        species_id: '',
-        origin_mother_band_number: '',
-        origin_father_band_number: '',
-      });
-      setGalleryFiles([]);
-      handleCloseAddBirdModal();
-      setTimeout(() => {
-        setAlert({ open: false, type: '', message: '' });
-      }, 10000);
-      toast.success('Bird added successfully!');
-    } catch (error) {
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        const { data } = error.response;
-
-        // Use the error message from the response
-        setAlert({
-          open: true,
-          type: 'error',
-          message: data.message || 'Error adding bird. Please try again.',
-        });
-        toast.error(data.message || 'Error adding bird. Please try again.');
-      } else if (error.request) {
-        // The request was made but no response was received
-        setAlert({ open: true, type: 'error', message: 'No response from the server.' });
-        toast.error('No response from the server.');
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        setAlert({ open: true, type: 'error', message: 'Unexpected error. Please try again.' });
-        toast.error('No response from the server.');
-      }
-      console.error('Error adding bird:', error);
-    }
-  };
-
   let birdContent;
 
   if (birds.length > 0) {
@@ -335,7 +277,7 @@ const BirdsV2View = () => {
       <Grid container spacing={3}>
         {birds.map((bird) => (
           <Grid item key={bird.id} xs={12} sm={6} md={4} lg={3}>
-            <BirdCard bird={bird} setBirds={setBirds} toast={toast} setAlert={setAlert} showFemaleBirds={showFemaleBirds} showMaleBirds={showMaleBirds} TabPanel={TabPanel} speciesOptions={speciesOptions}/>
+            <BirdCard bird={bird} onEdit={handleOpenBirdModal} />
           </Grid>
         ))}
       </Grid>
@@ -349,6 +291,181 @@ const BirdsV2View = () => {
   } else {
     birdContent = <Typography variant="body1">No records found.</Typography>;
   }
+
+  const handleBirdDataChange = (e) => {
+    const { name, value } = e.target;
+    setNewBirdData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleSaveBird = async () => {
+    try {
+      // If editingBird is not null, it means we are editing an existing bird
+      if (editingBird) {
+        try {
+          const formData = new FormData();
+
+          // Append newBirdData fields to FormData
+          Object.entries(newBirdData).forEach(([key, value]) => {
+            formData.append(key, value);
+          });
+
+          // Append files to FormData
+          galleryFiles.forEach((file, index) => {
+            formData.append(`gallery[${index}]`, file);
+          });
+
+          // Format date fields
+          const formattedDateOfBanding = new Date(newBirdData.date_of_banding)
+            .toISOString()
+            .slice(0, 19)
+            .replace('T', ' ');
+
+          const formattedDateOfBirth = new Date(newBirdData.date_of_birth)
+            .toISOString()
+            .slice(0, 19)
+            .replace('T', ' ');
+
+          // Append formatted date fields to FormData
+          formData.append('date_of_banding', formattedDateOfBanding);
+          formData.append('date_of_birth', formattedDateOfBirth);
+
+          // Make the PUT request with FormData
+          await axios.post(
+            `${import.meta.env.VITE_API_BASE_URL}/api/v1/birds/${editingBird.id}?_method=PUT`,
+            formData,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+                Authorization: `Bearer ${myToken}`,
+              },
+            }
+          );
+
+          // Close the modal and refresh the data
+          setBirds((prevBirds) => {
+            // Update the edited bird in the state with the new data
+            const updatedBirds = prevBirds.map((prevBird) =>
+              prevBird.id === editingBird.id ? { ...prevBird, ...newBirdData } : prevBird
+            );
+            return updatedBirds;
+          });
+
+          setGalleryFiles([]);
+          handleCloseBirdModal();
+
+          toast.success('Bird updated successfully!');
+        } catch (error) {
+          // Handle errors for updating the bird
+          console.error('Error updating bird:', error);
+          handleSaveError(error);
+        }
+      } else {
+        // If editingBird is null, it means we are adding a new bird
+        try {
+          const formData = new FormData();
+
+          // Append newBirdData fields to FormData
+          Object.entries(newBirdData).forEach(([key, value]) => {
+            // Convert species_id to integer before appending
+            if (key === 'species_id' && typeof value === 'string') {
+              formData.append(key, parseInt(value, 10));
+            } else {
+              formData.append(key, value);
+            }
+          });
+
+          // Append files to FormData
+          galleryFiles.forEach((file, index) => {
+            formData.append(`gallery[${index}]`, file);
+          });
+
+          // Format date fields
+          const formattedDateOfBanding = new Date(newBirdData.date_of_banding)
+            .toISOString()
+            .slice(0, 19)
+            .replace('T', ' ');
+
+          const formattedDateOfBirth = new Date(newBirdData.date_of_birth)
+            .toISOString()
+            .slice(0, 19)
+            .replace('T', ' ');
+
+          // Append formatted date fields to FormData
+          formData.append('date_of_banding', formattedDateOfBanding);
+          formData.append('date_of_birth', formattedDateOfBirth);
+
+          // Make the POST request with FormData
+          await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/v1/birds`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${myToken}`,
+            },
+          });
+
+          // Close the modal and refresh the data
+          const birdsResponse = await axios.get(
+            `${import.meta.env.VITE_API_BASE_URL}/api/v1/birds?page=${currentPage}&per_page=10`,
+            {
+              headers: {
+                Authorization: `Bearer ${myToken}`,
+              },
+            }
+          );
+
+          setBirds(birdsResponse.data.data);
+          setNewBirdData({
+            band_number: '',
+            sex: '',
+            cage_number: '',
+            date_of_banding: getFormattedDateTime(),
+            date_of_birth: getFormattedDateTime(),
+            notes: '',
+            status: '',
+            species_id: '',
+            origin_mother_band_number: '',
+            origin_father_band_number: '',
+          });
+
+          setGalleryFiles([]);
+          handleCloseBirdModal();
+          setTimeout(() => {
+            setAlert({ open: false, type: '', message: '' });
+          }, 10000);
+
+          toast.success('Bird added successfully!');
+        } catch (error) {
+          // Handle errors for adding a new bird
+          console.error('Error adding bird:', error);
+          handleSaveError(error);
+        }
+      }
+    } catch (error) {
+      // Handle other errors
+      console.error(error);
+    }
+  };
+
+  // Helper function to handle common save errors
+  const handleSaveError = (error) => {
+    if (error.response) {
+      const { data } = error.response;
+      setAlert({
+        open: true,
+        type: 'error',
+        message: data.message || 'Error processing the request. Please try again.',
+      });
+      toast.error(data.message || 'Error processing the request. Please try again.');
+    } else if (error.request) {
+      setAlert({ open: true, type: 'error', message: 'No response from the server.' });
+      toast.error('No response from the server.');
+    } else {
+      setAlert({ open: true, type: 'error', message: 'Unexpected error. Please try again.' });
+      toast.error('Unexpected error. Please try again.');
+    }
+  };
 
   return (
     <Container>
@@ -365,7 +482,7 @@ const BirdsV2View = () => {
         variant="outlined"
         color="primary"
         style={{ marginBottom: '10px', margin: '10px' }}
-        onClick={handleOpenAddBirdModal}
+        onClick={() => handleOpenBirdModal(null)}
       >
         Add Bird
       </Button>
@@ -378,12 +495,18 @@ const BirdsV2View = () => {
       )}
 
       {/* Add Bird Modal */}
-      <Dialog open={openAddBirdModal} onClose={handleCloseAddBirdModal}>
-        <DialogTitle>Add Bird</DialogTitle>
+      <Dialog open={openBirdModal} onClose={handleCloseBirdModal}>
+        <DialogTitle>{editingBird ? 'Edit Bird' : 'Add Bird'}</DialogTitle>
         <DialogContent>
           <form>
             <Box sx={{ width: '100%' }}>
-              <Tabs value={tabValue} onChange={handleChangeTab}>
+              <Tabs
+                value={tabValue}
+                onChange={handleChangeTab}
+                variant="scrollable"
+                scrollButtons
+                allowScrollButtonsMobile
+              >
                 <Tab label="Main Details" />
 
                 <Tab label="Origin" />
@@ -399,8 +522,8 @@ const BirdsV2View = () => {
                   margin="normal"
                   label="Band Number"
                   name="band_number"
-                  value={newBirdData.band_number}
-                  onChange={handleNewBirdDataChange}
+                  value={newBirdData.band_number || ''}
+                  onChange={handleBirdDataChange}
                   fullWidth
                 />
 
@@ -408,8 +531,8 @@ const BirdsV2View = () => {
                   margin="normal"
                   label="Sex"
                   name="sex"
-                  value={newBirdData.sex}
-                  onChange={handleNewBirdDataChange}
+                  value={newBirdData.sex || ''}
+                  onChange={handleBirdDataChange}
                   fullWidth
                 />
 
@@ -417,13 +540,13 @@ const BirdsV2View = () => {
                   margin="normal"
                   label="Species"
                   name="species_id"
-                  value={newBirdData.species_id}
-                  onChange={handleNewBirdDataChange}
+                  value={newBirdData.species_id || ''}
+                  onChange={handleBirdDataChange}
                   fullWidth
                   select
                 >
                   {speciesOptions.map((species) => (
-                    <MenuItem key={species.id} value={species.id}>
+                    <MenuItem key={species.id} value={species.id || ''}>
                       {species.name}
                     </MenuItem>
                   ))}
@@ -433,8 +556,8 @@ const BirdsV2View = () => {
                   margin="normal"
                   label="Cage Number"
                   name="cage_number"
-                  value={newBirdData.cage_number}
-                  onChange={handleNewBirdDataChange}
+                  value={newBirdData.cage_number || ''}
+                  onChange={handleBirdDataChange}
                   fullWidth
                 />
                 <TextField
@@ -442,8 +565,8 @@ const BirdsV2View = () => {
                   label="Date of Banding"
                   name="date_of_banding"
                   type="datetime-local"
-                  value={newBirdData.date_of_banding}
-                  onChange={handleNewBirdDataChange}
+                  value={newBirdData.date_of_banding || ''}
+                  onChange={handleBirdDataChange}
                   fullWidth
                 />
                 <TextField
@@ -451,8 +574,8 @@ const BirdsV2View = () => {
                   label="Date of Birth"
                   name="date_of_birth"
                   type="datetime-local"
-                  value={newBirdData.date_of_birth}
-                  onChange={handleNewBirdDataChange}
+                  value={newBirdData.date_of_birth || ''}
+                  onChange={handleBirdDataChange}
                   fullWidth
                 />
 
@@ -460,8 +583,8 @@ const BirdsV2View = () => {
                   margin="normal"
                   label="Status"
                   name="status"
-                  value={newBirdData.status}
-                  onChange={handleNewBirdDataChange}
+                  value={newBirdData.status || ''}
+                  onChange={handleBirdDataChange}
                   fullWidth
                   select
                 >
@@ -479,13 +602,13 @@ const BirdsV2View = () => {
                   margin="normal"
                   label="Mother (band number)"
                   name="origin_mother_band_number"
-                  value={newBirdData.origin_mother_band_number}
-                  onChange={handleNewBirdDataChange}
+                  value={newBirdData.origin_mother_band_number || ''}
+                  onChange={handleBirdDataChange}
                   fullWidth
                   select
                 >
                   {showFemaleBirds.map((motherBird) => (
-                    <MenuItem key={motherBird.id} value={motherBird.band_number}>
+                    <MenuItem key={motherBird.id} value={motherBird.band_number || ''}>
                       {motherBird.band_number}
                     </MenuItem>
                   ))}
@@ -495,13 +618,13 @@ const BirdsV2View = () => {
                   margin="normal"
                   label="Father (band number)"
                   name="origin_father_band_number"
-                  value={newBirdData.origin_father_band_number}
-                  onChange={handleNewBirdDataChange}
+                  value={newBirdData.origin_father_band_number || ''}
+                  onChange={handleBirdDataChange}
                   fullWidth
                   select
                 >
                   {showMaleBirds.map((fatherBird) => (
-                    <MenuItem key={fatherBird.id} value={fatherBird.band_number}>
+                    <MenuItem key={fatherBird.id} value={fatherBird.band_number || ''}>
                       {fatherBird.band_number}
                     </MenuItem>
                   ))}
@@ -541,8 +664,8 @@ const BirdsV2View = () => {
                   margin="normal"
                   label="Notes"
                   name="notes"
-                  value={newBirdData.notes}
-                  onChange={handleNewBirdDataChange}
+                  value={newBirdData.notes || ''}
+                  onChange={handleBirdDataChange}
                   fullWidth
                 />
               </TabPanel>
@@ -550,11 +673,11 @@ const BirdsV2View = () => {
           </form>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddBirdModal} color="primary">
+          <Button onClick={handleCloseBirdModal} color="primary">
             Cancel
           </Button>
-          <Button onClick={handleAddBird} color="primary">
-            Add Bird
+          <Button onClick={handleSaveBird} color="primary">
+            {editingBird ? 'Save Changes' : 'Add Bird'}
           </Button>
         </DialogActions>
       </Dialog>

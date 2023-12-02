@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import {
   Typography,
   Table,
@@ -22,20 +23,20 @@ import { confirmAlert } from 'react-confirm-alert'; // Import the confirmation d
 
 import 'react-confirm-alert/src/react-confirm-alert.css'; // Import the confirmation dialog styles
 
+const myToken = localStorage.getItem('ACCESS_TOKEN');
+
 const SpeciesTable = () => {
   const [speciesData, setSpeciesData] = useState([]);
   const [selectedSpecies, setSelectedSpecies] = useState(null);
   const [isDialogOpen, setDialogOpen] = useState(false);
-  const [newSpecies, setNewSpecies] = useState({
-    name: '',
-  });
+  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm();
 
   useEffect(() => {
     const fetchSpeciesData = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/v1/species', {
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/v1/species`, {
           headers: {
-            Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+            Authorization: `Bearer ${myToken}`,
           },
         });
         setSpeciesData(response.data.data);
@@ -51,14 +52,11 @@ const SpeciesTable = () => {
     if (species) {
       // If editing, set the selected species and populate the input field
       setSelectedSpecies(species);
-      setNewSpecies({
-        name: species.name,
-      });
+      setValue('name', species.name);
     } else {
       // If adding, clear the input field
-      setNewSpecies({
-        name: '',
-      });
+      setSelectedSpecies(null);
+      reset();
     }
     setDialogOpen(true);
   };
@@ -68,18 +66,16 @@ const SpeciesTable = () => {
     setDialogOpen(false);
   };
 
-  const handleDialogSave = async () => {
+  const handleDialogSave = async (data) => {
     try {
       if (selectedSpecies) {
         // If editing, make a put request
         await axios.put(
-          `http://localhost:8000/api/v1/species/${selectedSpecies.id}`,
-          {
-            name: newSpecies.name,
-          },
+          `${import.meta.env.VITE_API_BASE_URL}/api/v1/species/${selectedSpecies.id}`,
+          data,
           {
             headers: {
-              Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+              Authorization: `Bearer ${myToken}`,
             },
           }
         );
@@ -87,7 +83,7 @@ const SpeciesTable = () => {
         // Update the species data in the state
         setSpeciesData((prevData) =>
           prevData.map((species) =>
-            species.id === selectedSpecies.id ? { ...species, name: newSpecies.name } : species
+            species.id === selectedSpecies.id ? { ...species, ...data } : species
           )
         );
 
@@ -95,13 +91,11 @@ const SpeciesTable = () => {
       } else {
         // If adding, make a post request
         const response = await axios.post(
-          'http://localhost:8000/api/v1/species',
-          {
-            name: newSpecies.name,
-          },
+          `${import.meta.env.VITE_API_BASE_URL}/api/v1/species`,
+          data,
           {
             headers: {
-              Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+              Authorization: `Bearer ${myToken}`,
             },
           }
         );
@@ -127,9 +121,9 @@ const SpeciesTable = () => {
           label: 'Yes',
           onClick: async () => {
             try {
-              await axios.delete(`http://localhost:8000/api/v1/species/${speciesId}`, {
+              await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/v1/species/${speciesId}`, {
                 headers: {
-                  Authorization: 'Bearer 2|jfe8niTYuo1Dr2h6FwQmJ4obS4LUAmBE1VtMX4af3ef92267',
+                  Authorization: `Bearer ${myToken}`,
                 },
               });
               // Remove the deleted species from the state
@@ -146,11 +140,6 @@ const SpeciesTable = () => {
         },
       ],
     });
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewSpecies((prevSpecies) => ({ ...prevSpecies, [name]: value }));
   };
 
   return (
@@ -195,22 +184,25 @@ const SpeciesTable = () => {
       <Dialog open={isDialogOpen} onClose={handleDialogClose}>
         <DialogTitle>{selectedSpecies ? 'Edit' : 'Add'} Species</DialogTitle>
         <DialogContent>
-          <TextField
-            label="Name"
-            name="name"
-            value={newSpecies.name}
-            onChange={handleInputChange}
-            fullWidth
-          />
+          <form onSubmit={handleSubmit(handleDialogSave)}>
+            <TextField
+              label="Name"
+              name="name"
+              {...register('name', { required: 'This field is required' })}
+              error={Boolean(errors.name)}
+              helperText={errors.name && errors.name.message}
+              fullWidth
+            />
+            <DialogActions>
+              <Button onClick={handleDialogClose} color="primary">
+                Cancel
+              </Button>
+              <Button type="submit" color="primary">
+                {selectedSpecies ? 'Save' : 'Add'}
+              </Button>
+            </DialogActions>
+          </form>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={handleDialogSave} color="primary">
-            {selectedSpecies ? 'Save' : 'Add'}
-          </Button>
-        </DialogActions>
       </Dialog>
     </>
   );
