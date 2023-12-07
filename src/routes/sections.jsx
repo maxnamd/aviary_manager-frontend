@@ -11,6 +11,7 @@ export const ProductsPage = lazy(() => import('src/pages/products'));
 export const BirdsPage = lazy(() => import('src/pages/birds'));
 export const BirdsV2Page = lazy(() => import('src/pages/birds-v2'));
 export const SpeciesPage = lazy(() => import('src/pages/species'));
+export const PairsPage = lazy(() => import('src/pages/pairs'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 
 // ----------------------------------------------------------------------
@@ -36,6 +37,7 @@ export default function Router() {
         { path: 'blog', element: <BlogPage /> },
         { path: 'birds', element: <BirdsPage /> },
         { path: 'species', element: <SpeciesPage /> },
+        { path: 'pairs', element: <PairsPage /> },
         { path: 'birds-v2', element: <BirdsV2Page /> },
       ],
     },

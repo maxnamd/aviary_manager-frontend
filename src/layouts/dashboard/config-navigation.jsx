@@ -23,6 +23,11 @@ const navConfig = [
     icon: icon('ic_birds'),
   },
   {
+    title: 'Pairs Manager',
+    path: '/pairs',
+    icon: icon('ic_birds'),
+  },
+  {
     title: 'birds - Alpha',
     path: '/birds',
     icon: icon('ic_birds-colored'),
